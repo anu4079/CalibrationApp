@@ -2,12 +2,13 @@
   "name": "Calibration Instrument Checklist System",
   "short_name": "Calibration",
   "description": "Industrial calibration checklist and gauge management application.",
-  "start_url": "index.html",
+  "start_url": ".",
+  "scope": ".",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#0284c7",
   "orientation": "portrait",
-  "id": "/",
+  "id": "calibration-app",
   "icons": [
     {
       "src": "icon-192.png",
