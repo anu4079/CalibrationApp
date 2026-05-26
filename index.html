@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<link rel="manifest" href="manifest.json">
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Calibration Instrument Checklist System</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+
+<style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:Arial;
+}
+
+body{
+background:#0f172a;
+padding:20px;
+color:white;
+}
+
+.container{
+background:#1e293b;
+padding:20px;
+border-radius:15px;
+}
+
+h1{
+text-align:center;
+margin-bottom:20px;
+color:#38bdf8;
+}
+
+.top-grid{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+gap:15px;
+margin-bottom:20px;
+}
+
+.card{
+background:#334155;
+padding:15px;
+border-radius:12px;
+}
+
+.card h3{
+margin-bottom:10px;
+color:#facc15;
+}
+
+input,
+select,
+textarea,
+button{
+width:100%;
+padding:10px;
+margin-top:8px;
+border:none;
+border-radius:8px;
+font-size:14px;
+}
+
+button{
+background:#0284c7;
+color:white;
+font-weight:bold;
+cursor:pointer;
+}
+
+button:hover{
+background:#0369a1;
+}
+
+.summary{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+gap:15px;
+margin:20px 0;
+}
+
+.summary-box{
+background:#334155;
+padding:20px;
+border-radius:10px;
+text-align:center;
+}
+
+.summary-box h2{
+font-size:35px;
+margin-top:10px;
+}
+
+.control-buttons{
+display:flex;
+gap:10px;
+margin:15px 0;
+flex-wrap:wrap;
+}
+
+.control-buttons button{
+flex:1;
+min-width:180px;
+}
+
+.table-container{
+overflow:auto;
+background:white;
+padding:10px;
+border-radius:10px;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+min-width:2800px;
+}
+
+th{
+background:#0284c7;
+color:white;
+padding:10px;
+border:1px solid #ccc;
+position:sticky;
+top:0;
+}
+
+td{
+padding:8px;
+border:1px solid #ccc;
+color:black;
+vertical-align:top;
+}
+
+.green-row td{
+background:#bbf7d0 !important;
+}
+
+.red-row td{
+background:#fecaca !important;
+}
+
+.gray-row td{
+background:#d1d5db !important;
+}
+
+.preview{
+width:80px;
+height:80px;
+object-fit:cover;
+border-radius:8px;
+margin-top:5px;
+}
+
+textarea{
+min-height:100px;
+}
+
+.history-box{
+margin-top:20px;
+background:#334155;
+padding:15px;
+border-radius:10px;
+}
+
+#historyList{
+background:white;
+color:black;
+max-height:300px;
+overflow:auto;
+padding:10px;
+border-radius:10px;
+}
+
+.history-item{
+padding:10px;
+border-bottom:1px solid #ccc;
+}
+
+footer{
+margin-top:20px;
+text-align:center;
+padding:15px;
+background:#334155;
+border-radius:10px;
+font-size:14px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>Calibration Instrument Checklist System</h1>
+
+<div class="top-grid">
+
+<div class="card">
+
+<h3>Upload Calibration Excel</h3>
+
+<input type="file" id="excelFile" accept=".xlsx,.xls">
+
+</div>
+
+<div class="card">
+
+<h3>Calibration Details</h3>
+
+<input type="text" id="person" placeholder="Calibration Person Name">
+
+<input type="text" id="supplier" placeholder="Supplier Lab Name">
+
+<input type="text" id="organizer" placeholder="Calibration Organizer Name">
+
+</div>
+
+<div class="card">
+
+<h3>Add New Gauge</h3>
+
+<input type="text" id="gname" placeholder="Gauge Name">
+
+<input type="text" id="gid" placeholder="Gauge ID">
+
+<input type="text" id="gdept" placeholder="Department">
+
+<input type="text" id="gmake" placeholder="Gauge Make">
+
+<input type="date" id="gdate">
+
+<button onclick="addGauge()">Add Gauge</button>
+
+</div>
+
+</div>
+
+<input type="text" id="search"
+placeholder="Search Gauge / ID / Department / Customer"
+onkeyup="searchTable()">
+
+<div class="summary">
+
+<div class="summary-box">
+<h3>Total Gauges</h3>
+<h2 id="total">0</h2>
+</div>
+
+<div class="summary-box">
+<h3>Completed</h3>
+<h2 id="completed">0</h2>
+</div>
+
+<div class="summary-box">
+<h3>Waiting</h3>
+<h2 id="waiting">0</h2>
+</div>
+
+<div class="summary-box">
+<h3>Broken / Missing</h3>
+<h2 id="broken">0</h2>
+</div>
+
+<div class="summary-box">
+<h3>Under RGP</h3>
+<h2 id="rgp">0</h2>
+</div>
+
+<div class="summary-box">
+<h3>Service</h3>
+<h2 id="service">0</h2>
+</div>
+
+</div>
+
+<div class="control-buttons">
+
+<button onclick="saveData()">Save Progress</button>
+
+<button onclick="restoreData()">Restore Saved Data</button>
+
+<button onclick="resetAll()">Reset All</button>
+
+<button onclick="downloadPDF()">Submit & Download PDF</button>
+
+</div>
+
+<div class="table-container">
+
+<table id="table">
+
+<thead>
+
+<tr>
+
+<th>S.No</th>
+<th>Gauge Name</th>
+<th>GO</th>
+<th>NOGO</th>
+<th>Serial No</th>
+<th>Make</th>
+<th>Type</th>
+<th>Use Of</th>
+<th>Criteria</th>
+<th>Gauge ID</th>
+<th>Due Date</th>
+<th>Department</th>
+<th>Status</th>
+<th>Gauge Condition</th>
+<th>Calibration Image</th>
+<th>Remarks</th>
+
+</tr>
+
+</thead>
+
+<tbody></tbody>
+
+</table>
+
+</div>
+
+<div class="history-box">
+
+<h2>Calibration History</h2>
+
+<div id="historyList"></div>
+
+</div>
+
+</div>
+
+<footer>
+© 2026 Calibration Instrument Checklist System. All Rights Reserved.
+</footer>
+
+<script>
+
+let gaugeData=[];
+let historyData=[];
+
+document.getElementById('excelFile').addEventListener('change',function(e){
+
+const file=e.target.files[0];
+
+const reader=new FileReader();
+
+reader.onload=function(evt){
+
+const data=new Uint8Array(evt.target.result);
+
+const workbook=XLSX.read(data,{type:'array'});
+
+gaugeData=[];
+
+workbook.SheetNames.forEach(sheet=>{
+
+const ws=workbook.Sheets[sheet];
+
+const json=XLSX.utils.sheet_to_json(ws,{header:1});
+
+for(let i=2;i<json.length;i++){
+
+const row=json[i];
+
+if(!row || row.length===0) continue;
+
+gaugeData.push({
+
+sno:row[0]||'',
+
+name:row[1]||'',
+
+go:row[2]||'',
+
+nogo:row[3]||'',
+
+serial:row[4]||'',
+
+make:row[5]||'',
+
+type:row[6]||'',
+
+useof:row[7]||'',
+
+criteria:row[8]||'',
+
+gid:row[9]||'',
+
+due:excelDateToJSDate(row[10]),
+
+dept:isNaN(row[11]) ? row[11] || '' : '',
+
+status:'Waiting for Calibration',
+
+condition:'OK',
+
+remarks:'',
+
+image:''
+
+});
+
+}
+
+});
+
+addHistory('Excel calibration file uploaded');
+
+renderTable();
+
+}
+
+reader.readAsArrayBuffer(file);
+
+});
+
+function excelDateToJSDate(serial){
+
+if(typeof serial==='number'){
+
+const utc_days=Math.floor(serial-25569);
+
+const utc_value=utc_days*86400;
+
+const date_info=new Date(utc_value*1000);
+
+return date_info.toLocaleDateString();
+
+}
+
+return serial;
+
+}
+
+function renderTable(){
+
+const tbody=document.querySelector('#table tbody');
+
+tbody.innerHTML='';
+
+gaugeData.forEach((g,index)=>{
+
+const tr=document.createElement('tr');
+
+if(g.status==='Completed'){
+tr.classList.add('green-row');
+}
+
+if(
+g.status==='Broken' ||
+g.status==='Gauge Missing' ||
+g.condition==='NOT OK'
+){
+tr.classList.add('red-row');
+}
+
+if(
+g.status==='Service' ||
+g.status==='Under RGP'
+){
+tr.classList.add('gray-row');
+}
+
+tr.innerHTML=`
+
+<td>${g.sno}</td>
+
+<td>${g.name}</td>
+
+<td>${g.go}</td>
+
+<td>${g.nogo}</td>
+
+<td>${g.serial}</td>
+
+<td>${g.make}</td>
+
+<td>${g.type}</td>
+
+<td>${g.useof}</td>
+
+<td>${g.criteria}</td>
+
+<td>${g.gid}</td>
+
+<td>${g.due}</td>
+
+<td>${g.dept}</td>
+
+<td>
+
+<select onchange="updateStatus(${index},this.value)">
+
+<option ${g.status==='Completed'?'selected':''}>Completed</option>
+
+<option ${g.status==='Gauge Missing'?'selected':''}>Gauge Missing</option>
+
+<option ${g.status==='Broken'?'selected':''}>Broken</option>
+
+<option ${g.status==='Waiting for Calibration'?'selected':''}>Waiting for Calibration</option>
+
+<option ${g.status==='Service'?'selected':''}>Service</option>
+
+<option ${g.status==='Under RGP'?'selected':''}>Under RGP</option>
+
+</select>
+
+</td>
+
+<td>
+
+<select onchange="updateCondition(${index},this.value)">
+
+<option ${g.condition==='OK'?'selected':''}>OK</option>
+
+<option ${g.condition==='NOT OK'?'selected':''}>NOT OK</option>
+
+</select>
+
+</td>
+
+<td>
+
+<input type="file"
+accept="image/*"
+capture="environment"
+onchange="uploadImage(event,${index})">
+
+${g.image?`<img src="${g.image}" class="preview">`:''}
+
+</td>
+
+<td>
+
+<textarea maxlength="500000"
+onchange="updateRemarks(${index},this.value)">${g.remarks}</textarea>
+
+</td>
+
+`;
+
+tbody.appendChild(tr);
+
+});
+
+updateSummary();
+
+}
+
+function updateSummary(){
+
+document.getElementById('total').innerText=
+gaugeData.length;
+
+document.getElementById('completed').innerText=
+gaugeData.filter(x=>x.status==='Completed').length;
+
+document.getElementById('waiting').innerText=
+gaugeData.filter(x=>x.status==='Waiting for Calibration').length;
+
+document.getElementById('broken').innerText=
+gaugeData.filter(x=>
+x.status==='Broken' ||
+x.status==='Gauge Missing'
+).length;
+
+document.getElementById('rgp').innerText=
+gaugeData.filter(x=>
+x.status==='Under RGP'
+).length;
+
+document.getElementById('service').innerText=
+gaugeData.filter(x=>
+x.status==='Service'
+).length;
+
+}
+
+function updateStatus(index,value){
+
+const old=gaugeData[index].status;
+
+gaugeData[index].status=value;
+
+addHistory(
+gaugeData[index].name+
+' ('+
+gaugeData[index].gid+
+') status changed from '+
+old+
+' to '+
+value
+);
+
+saveData();
+
+renderTable();
+
+}
+
+function updateCondition(index,value){
+
+const old=gaugeData[index].condition;
+
+gaugeData[index].condition=value;
+
+addHistory(
+gaugeData[index].name+
+' condition changed from '+
+old+
+' to '+
+value
+);
+
+saveData();
+
+renderTable();
+
+}
+
+function updateRemarks(index,value){
+
+gaugeData[index].remarks=value;
+
+saveData();
+
+}
+
+function uploadImage(event,index){
+
+const file=event.target.files[0];
+
+const reader=new FileReader();
+
+reader.onload=function(e){
+
+gaugeData[index].image=e.target.result;
+
+addHistory(
+'Image uploaded for '+gaugeData[index].name
+);
+
+saveData();
+
+renderTable();
+
+}
+
+reader.readAsDataURL(file);
+
+}
+
+function addGauge(){
+
+const gauge={
+
+sno:gaugeData.length+1,
+
+name:document.getElementById('gname').value,
+
+go:'-',
+
+nogo:'-',
+
+serial:'-',
+
+make:document.getElementById('gmake').value,
+
+type:'-',
+
+useof:'-',
+
+criteria:'-',
+
+gid:document.getElementById('gid').value,
+
+due:document.getElementById('gdate').value,
+
+dept:isNaN(document.getElementById('gdept').value)
+? document.getElementById('gdept').value
+: '',
+
+status:'Waiting for Calibration',
+
+condition:'OK',
+
+remarks:'',
+
+image:''
+
+};
+
+gaugeData.push(gauge);
+
+addHistory('New Gauge Added : '+gauge.name);
+
+saveData();
+
+renderTable();
+
+}
+
+function searchTable(){
+
+const value=document.getElementById('search').value.toLowerCase();
+
+const rows=document.querySelectorAll('#table tbody tr');
+
+rows.forEach(r=>{
+
+if(r.innerText.toLowerCase().includes(value)){
+
+r.style.display='';
+
+}else{
+
+r.style.display='none';
+
+}
+
+});
+
+}
+
+function addHistory(message){
+
+const now=new Date();
+
+const time=now.toLocaleString();
+
+historyData.unshift({
+
+time:time,
+
+message:message
+
+});
+
+renderHistory();
+
+}
+
+function renderHistory(){
+
+const history=document.getElementById('historyList');
+
+history.innerHTML='';
+
+historyData.forEach(h=>{
+
+const div=document.createElement('div');
+
+div.classList.add('history-item');
+
+div.innerHTML=`
+<b>${h.time}</b><br>
+${h.message}
+`;
+
+history.appendChild(div);
+
+});
+
+}
+
+function saveData(){
+
+localStorage.setItem(
+'gaugeData',
+JSON.stringify(gaugeData)
+);
+
+localStorage.setItem(
+'historyData',
+JSON.stringify(historyData)
+);
+
+alert('Calibration Progress Saved');
+
+}
+
+function restoreData(){
+
+const savedGauge=
+localStorage.getItem('gaugeData');
+
+const savedHistory=
+localStorage.getItem('historyData');
+
+if(savedGauge){
+
+gaugeData=JSON.parse(savedGauge);
+
+renderTable();
+
+}
+
+if(savedHistory){
+
+historyData=JSON.parse(savedHistory);
+
+renderHistory();
+
+}
+
+alert('Saved Calibration Data Restored');
+
+}
+
+function resetAll(){
+
+if(confirm('Reset all calibration data?')){
+
+localStorage.removeItem('gaugeData');
+
+localStorage.removeItem('historyData');
+
+gaugeData=[];
+
+historyData=[];
+
+renderTable();
+
+renderHistory();
+
+document.getElementById('historyList').innerHTML='';
+
+alert('All Calibration Data Reset Successfully');
+
+}
+
+}
+
+async function downloadPDF(){
+
+const {jsPDF}=window.jspdf;
+
+const doc=new jsPDF('l','mm','a4');
+
+const today=new Date().toLocaleDateString();
+
+const person=document.getElementById('person').value;
+
+const supplier=document.getElementById('supplier').value;
+
+const organizer=document.getElementById('organizer').value;
+
+doc.setFontSize(18);
+
+doc.text(
+'Calibration Instrument Checklist Report',
+14,
+15
+);
+
+doc.setFontSize(11);
+
+doc.text('Date : '+today,220,15);
+
+doc.text('Calibration Person : '+person,14,25);
+
+doc.text('Supplier Lab : '+supplier,14,32);
+
+doc.text('Organizer : '+organizer,14,39);
+
+doc.text(
+'Total Gauges : '+gaugeData.length,
+14,
+48
+);
+
+doc.autoTable({
+
+startY:55,
+
+head:[[
+'S.No',
+'Gauge',
+'Gauge ID',
+'Department',
+'Due Date',
+'Status',
+'Condition',
+'Remarks'
+]],
+
+body:gaugeData.map(g=>[
+g.sno,
+g.name,
+g.gid,
+g.dept,
+g.due,
+g.status,
+g.condition,
+g.remarks
+]),
+
+styles:{
+fontSize:7
+}
+
+});
+
+let y=doc.lastAutoTable.finalY+10;
+
+for(let i=0;i<gaugeData.length;i++){
+
+const g=gaugeData[i];
+
+if(g.image){
+
+if(y>170){
+
+doc.addPage();
+
+y=20;
+
+}
+
+doc.text(g.name+' - '+g.gid,14,y);
+
+doc.addImage(g.image,'JPEG',14,y+5,40,40);
+
+y+=55;
+
+}
+
+}
+
+if(historyData.length>0){
+
+doc.addPage();
+
+doc.setFontSize(16);
+
+doc.text('Calibration History',14,20);
+
+let hy=35;
+
+historyData.forEach(h=>{
+
+if(hy>180){
+
+doc.addPage();
+
+hy=20;
+
+}
+
+doc.setFontSize(9);
+
+doc.text(
+h.time+' - '+h.message,
+14,
+hy
+);
+
+hy+=10;
+
+});
+
+}
+
+doc.save('Calibration_Report.pdf');
+
+}
+
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js');
+}
+</script>
+
+</body>
+</html>
