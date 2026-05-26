@@ -1,11 +1,13 @@
 {
-  "name": "Calibration Checklist",
+  "name": "Calibration Instrument Checklist System",
   "short_name": "Calibration",
+  "description": "Professional industrial calibration checklist and gauge management application with Excel upload, PDF reporting, calibration tracking, image upload, save and restore support.",
   "start_url": "index.html",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#0284c7",
   "orientation": "portrait",
+  "id": "/",
   "icons": [
     {
       "src": "icon-192.png",
