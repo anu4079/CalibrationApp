@@ -1,992 +1,807 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-<link rel="manifest" href="manifest.json">
-
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Calibration Instrument Checklist System</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0B5E7E">
+<link rel="manifest" href="manifest.json">
+<title>Calibration Instrument Checklist</title>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 
 <style>
-
-*{
-margin:0;
-padding:0;
-box-sizing:border-box;
-font-family:Arial;
+:root{
+  --bg:#E8ECEF; --panel:#FFFFFF; --ink:#16212B; --muted:#5E6B76; --line:#CFD6DC;
+  --brand:#0B5E7E; --brand-d:#084A63;
+  --ok:#1E7B4B; --ok-bg:#E3F3EA;
+  --bad:#B3261E; --bad-bg:#FBE7E5;
+  --hold:#A86400; --hold-bg:#FBF0DC;
+  --svc:#56606B; --svc-bg:#ECEEF0;
+  --radius:10px;
 }
-
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
 body{
-background:#0f172a;
-padding:20px;
-color:white;
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif;
+  background:var(--bg); color:var(--ink); font-size:15px; line-height:1.45;
+  padding-bottom:calc(84px + env(safe-area-inset-bottom));
 }
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid #F2B705;outline-offset:2px}
 
-.container{
-background:#1e293b;
-padding:20px;
-border-radius:15px;
+/* Header */
+.top{
+  background:var(--brand); color:#fff; padding:14px 16px 12px;
+  padding-top:calc(14px + env(safe-area-inset-top));
 }
+.top-row{display:flex;justify-content:space-between;align-items:baseline;gap:10px;max-width:1200px;margin:0 auto}
+.top h1{font-size:18px;font-weight:700;letter-spacing:.2px}
+.save-state{font-size:12px;opacity:.85;white-space:nowrap}
+.progress{max-width:1200px;margin:10px auto 0}
+.progress-text{display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px;font-variant-numeric:tabular-nums}
+.progress-text b{font-size:22px;font-weight:700}
+.bar{height:10px;background:rgba(255,255,255,.22);border-radius:5px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:#7FE0A8;transition:width .4s ease}
+@media (prefers-reduced-motion:reduce){.bar i{transition:none}}
 
-h1{
-text-align:center;
-margin-bottom:20px;
-color:#38bdf8;
+main{max-width:1200px;margin:0 auto;padding:12px}
+
+.banner{background:var(--bad-bg);color:var(--bad);border:1px solid #E9B8B3;border-radius:var(--radius);padding:10px 12px;margin-bottom:12px;font-size:14px}
+.banner button{margin-top:8px}
+
+/* Setup panel */
+details.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:12px}
+details.panel>summary{list-style:none;padding:13px 14px;font-weight:600;display:flex;justify-content:space-between;align-items:center;cursor:pointer}
+details.panel>summary::-webkit-details-marker{display:none}
+details.panel>summary::after{content:"+";font-size:20px;color:var(--muted);line-height:1}
+details.panel[open]>summary::after{content:"–"}
+.panel-body{padding:0 14px 14px;display:grid;gap:16px}
+@media(min-width:800px){.panel-body{grid-template-columns:repeat(3,1fr)}}
+.group h2{font-size:14px;font-weight:600;margin-bottom:6px;color:var(--brand-d)}
+.group p.hint{font-size:13px;color:var(--muted);margin-bottom:6px}
+label.f{display:block;font-size:13px;color:var(--muted);margin-top:8px}
+.inp,select,textarea{
+  width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:8px;background:#fff;
+  min-height:44px;font-size:16px; /* 16px prevents iOS zoom */
 }
+textarea{resize:vertical}
+.file-meta{background:var(--bg);border-radius:8px;padding:10px 12px;font-size:13px;margin:6px 0}
+.file-meta b{display:block;font-size:14px;word-break:break-all}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.row>*{flex:1 1 140px}
+.check{display:flex;gap:8px;align-items:flex-start;font-size:14px;margin-top:10px}
+.check input{width:20px;height:20px;margin-top:1px;flex:none}
 
-.top-grid{
-display:grid;
-grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
-gap:15px;
-margin-bottom:20px;
+.btn{min-height:44px;padding:10px 14px;border-radius:8px;border:1px solid var(--brand);background:var(--brand);color:#fff;font-weight:600}
+.btn:active{background:var(--brand-d)}
+.btn.ghost{background:#fff;color:var(--brand)}
+.btn.danger{background:#fff;color:var(--bad);border-color:var(--bad)}
+.btn.small{min-height:38px;padding:7px 12px;font-size:14px}
+.upload-btn{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.upload-btn input{position:absolute;inset:0;opacity:0;cursor:pointer}
+
+/* Search */
+.finder{position:sticky;top:0;z-index:20;background:var(--bg);padding:8px 0 6px;margin:0 -12px;padding-left:12px;padding-right:12px}
+.search-wrap{position:relative}
+.search-wrap .inp{padding-left:40px;padding-right:44px;border-width:2px;border-color:#B7C2CB;border-radius:10px}
+.search-wrap .inp:focus{border-color:var(--brand)}
+.search-ico{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
+.clear-q{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:38px;height:38px;border:0;background:none;font-size:22px;color:var(--muted);display:none}
+.chips{display:flex;gap:6px;overflow-x:auto;padding:8px 0 2px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;border:1px solid var(--line);background:#fff;border-radius:20px;padding:7px 12px;font-size:13px;white-space:nowrap;min-height:36px}
+.chip b{font-variant-numeric:tabular-nums;margin-left:4px}
+.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
+.result-line{font-size:13px;color:var(--muted);padding:4px 2px 0}
+
+/* Cards */
+#list{display:grid;gap:10px;margin-top:6px}
+@media(min-width:720px){#list{grid-template-columns:repeat(2,1fr)}}
+@media(min-width:1080px){#list{grid-template-columns:repeat(3,1fr)}}
+.card{background:var(--panel);border:1px solid var(--line);border-left:6px solid var(--brand);border-radius:var(--radius);padding:12px;display:flex;flex-direction:column;gap:10px}
+.card.s-ok{border-left-color:var(--ok);background:linear-gradient(var(--ok-bg),var(--ok-bg)) top/100% 52px no-repeat,#fff}
+.card.s-bad{border-left-color:var(--bad)}
+.card.s-hold{border-left-color:var(--hold)}
+.card.s-svc{border-left-color:var(--svc)}
+.card.notok{box-shadow:inset 0 0 0 2px var(--bad)}
+.c-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.c-head h3{font-size:16px;font-weight:700;line-height:1.3;word-break:break-word}
+.c-sub{font-size:13px;color:var(--muted)}
+.gid{flex:none;font-weight:700;font-size:13px;background:var(--ink);color:#fff;border-radius:6px;padding:4px 8px;font-variant-numeric:tabular-nums;max-width:50%;word-break:break-all;text-align:center}
+.c-facts{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;font-size:13px}
+.c-facts div{min-width:0}
+.c-facts dt{color:var(--muted);font-size:12px}
+.c-facts dd{word-break:break-word}
+.c-facts .overdue dd{color:var(--bad);font-weight:700}
+.c-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.done-btn{min-height:48px;border-radius:8px;border:2px solid var(--ok);background:#fff;color:var(--ok);font-weight:700;font-size:15px}
+.done-btn[aria-pressed="true"]{background:var(--ok);color:#fff}
+.cond{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
+.cond span{flex:1}
+.cond button{min-height:40px;min-width:78px;border:1px solid var(--line);background:#fff;border-radius:8px;font-weight:600;color:var(--ink)}
+.cond button[data-v="OK"][aria-pressed="true"]{background:var(--ok-bg);border-color:var(--ok);color:var(--ok)}
+.cond button[data-v="NOT OK"][aria-pressed="true"]{background:var(--bad);border-color:var(--bad);color:#fff}
+.photo{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.photo img{width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--line);cursor:zoom-in}
+.photo .btn{flex:1 1 110px}
+.link{border:0;background:none;color:var(--bad);text-decoration:underline;font-size:13px;min-height:36px}
+.stamp{font-size:12px;color:var(--muted)}
+.empty{background:var(--panel);border:2px dashed var(--line);border-radius:var(--radius);padding:28px 16px;text-align:center;color:var(--muted)}
+.empty b{display:block;color:var(--ink);font-size:16px;margin-bottom:4px}
+.more{margin:12px auto 0;display:block}
+
+/* History */
+#historyList{max-height:320px;overflow:auto;font-size:13px}
+.h-item{padding:8px 0;border-bottom:1px solid var(--line)}
+.h-item time{display:block;color:var(--muted);font-size:12px}
+
+/* Bottom bar */
+.dock{
+  position:fixed;left:0;right:0;bottom:0;z-index:30;background:#fff;border-top:1px solid var(--line);
+  padding:8px 10px calc(8px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(3,1fr);gap:8px
 }
+.dock .btn{font-size:14px;padding:8px 6px}
+@media(min-width:800px){.dock{max-width:720px;margin:0 auto;border:1px solid var(--line);border-radius:12px 12px 0 0}}
 
-.card{
-background:#334155;
-padding:15px;
-border-radius:12px;
-}
-
-.card h3{
-margin-bottom:10px;
-color:#facc15;
-}
-
-input,
-select,
-textarea,
-button{
-width:100%;
-padding:10px;
-margin-top:8px;
-border:none;
-border-radius:8px;
-font-size:14px;
-}
-
-button{
-background:#0284c7;
-color:white;
-font-weight:bold;
-cursor:pointer;
-}
-
-button:hover{
-background:#0369a1;
-}
-
-.summary{
-display:grid;
-grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
-gap:15px;
-margin:20px 0;
-}
-
-.summary-box{
-background:#334155;
-padding:20px;
-border-radius:10px;
-text-align:center;
-}
-
-.summary-box h2{
-font-size:35px;
-margin-top:10px;
-}
-
-.control-buttons{
-display:flex;
-gap:10px;
-margin:15px 0;
-flex-wrap:wrap;
-}
-
-.control-buttons button{
-flex:1;
-min-width:180px;
-}
-
-.table-container{
-overflow:auto;
-background:white;
-padding:10px;
-border-radius:10px;
-}
-
-table{
-width:100%;
-border-collapse:collapse;
-min-width:2800px;
-}
-
-th{
-background:#0284c7;
-color:white;
-padding:10px;
-border:1px solid #ccc;
-position:sticky;
-top:0;
-}
-
-td{
-padding:8px;
-border:1px solid #ccc;
-color:black;
-vertical-align:top;
-}
-
-.green-row td{
-background:#bbf7d0 !important;
-}
-
-.red-row td{
-background:#fecaca !important;
-}
-
-.gray-row td{
-background:#d1d5db !important;
-}
-
-.preview{
-width:80px;
-height:80px;
-object-fit:cover;
-border-radius:8px;
-margin-top:5px;
-}
-
-textarea{
-min-height:100px;
-}
-
-.history-box{
-margin-top:20px;
-background:#334155;
-padding:15px;
-border-radius:10px;
-}
-
-#historyList{
-background:white;
-color:black;
-max-height:300px;
-overflow:auto;
-padding:10px;
-border-radius:10px;
-}
-
-.history-item{
-padding:10px;
-border-bottom:1px solid #ccc;
-}
-
-footer{
-margin-top:20px;
-text-align:center;
-padding:15px;
-background:#334155;
-border-radius:10px;
-font-size:14px;
-}
-
+.toast{position:fixed;left:50%;bottom:calc(92px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:8px;font-size:14px;z-index:50;max-width:90vw;opacity:0;pointer-events:none;transition:opacity .2s}
+.toast.show{opacity:1}
+#lightbox{position:fixed;inset:0;background:rgba(10,15,20,.92);display:none;align-items:center;justify-content:center;z-index:60;padding:16px}
+#lightbox.show{display:flex}
+#lightbox img{max-width:100%;max-height:100%;border-radius:8px}
+footer{text-align:center;font-size:12px;color:var(--muted);padding:18px 12px}
 </style>
-
 </head>
-
 <body>
 
-<div class="container">
+<header class="top">
+  <div class="top-row">
+    <h1>Calibration Instrument Checklist</h1>
+    <span class="save-state" id="saveState">Loading…</span>
+  </div>
+  <div class="progress">
+    <div class="progress-text"><span><b id="pDone">0</b> of <span id="pTotal">0</span> gauges completed</span><span id="pPct">0%</span></div>
+    <div class="bar"><i id="pBar"></i></div>
+  </div>
+</header>
 
-<h1>Calibration Instrument Checklist System</h1>
+<main>
+  <div id="storageBanner" class="banner" hidden></div>
+  <div id="mailBanner" class="banner" hidden></div>
 
-<div class="top-grid">
+  <details class="panel" id="setupPanel">
+    <summary>Setup: Excel, calibration details, email</summary>
+    <div class="panel-body">
 
-<div class="card">
+      <section class="group">
+        <h2>Calibration Excel</h2>
+        <div id="excelInfo" class="file-meta">No Excel uploaded yet.</div>
+        <div class="row">
+          <label class="btn upload-btn" id="uploadLabel">
+            <span id="uploadText">Upload Excel</span>
+            <input type="file" id="excelFile" accept=".xlsx,.xls">
+          </label>
+          <button class="btn ghost" id="dlOriginal" hidden>Download original</button>
+        </div>
+        <p class="hint" style="margin-top:8px">The Excel and all progress stay saved on this device until you upload a new Excel or clear the data.</p>
+      </section>
 
-<h3>Upload Calibration Excel</h3>
+      <section class="group">
+        <h2>Calibration details</h2>
+        <label class="f" for="person">Calibration person</label>
+        <input class="inp" id="person" autocomplete="name">
+        <label class="f" for="supplier">Supplier lab</label>
+        <input class="inp" id="supplier">
+        <label class="f" for="organizer">Calibration organizer</label>
+        <input class="inp" id="organizer">
+      </section>
 
-<input type="file" id="excelFile" accept=".xlsx,.xls">
+      <section class="group">
+        <h2>Completion email</h2>
+        <label class="f" for="mailTo">Send completed list to</label>
+        <input class="inp" id="mailTo" type="email" inputmode="email">
+        <label class="check"><input type="checkbox" id="autoMail"> <span>Send automatically when no gauges are left waiting for calibration</span></label>
+        <p class="hint" id="mailStatus" style="margin-top:8px"></p>
+      </section>
 
-</div>
+      <section class="group">
+        <h2>Add a gauge</h2>
+        <input class="inp" id="gname" placeholder="Gauge name">
+        <div class="row">
+          <input class="inp" id="gid" placeholder="Gauge ID">
+          <input class="inp" id="gserial" placeholder="Serial no">
+        </div>
+        <div class="row">
+          <input class="inp" id="gdept" placeholder="Department">
+          <input class="inp" id="gmake" placeholder="Make">
+        </div>
+        <label class="f" for="gdate">Due date</label>
+        <input class="inp" id="gdate" type="date">
+        <button class="btn" id="addBtn" style="width:100%;margin-top:10px">Add gauge</button>
+      </section>
 
-<div class="card">
+      <section class="group">
+        <h2>Calibration history</h2>
+        <div id="historyList"></div>
+      </section>
 
-<h3>Calibration Details</h3>
+      <section class="group">
+        <h2>Clear data</h2>
+        <p class="hint">Deletes the saved Excel, every status, remark, photo and the history from this device.</p>
+        <button class="btn danger" id="clearBtn" style="width:100%">Clear all data</button>
+      </section>
+    </div>
+  </details>
 
-<input type="text" id="person" placeholder="Calibration Person Name">
+  <div class="finder">
+    <div class="search-wrap">
+      <svg class="search-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input class="inp" id="search" type="search" placeholder="Search name, ID, serial, department…" autocomplete="off" enterkeyhint="search" aria-label="Search gauges">
+      <button class="clear-q" id="clearQ" aria-label="Clear search">×</button>
+    </div>
+    <div class="chips" id="chips" role="group" aria-label="Filter by status"></div>
+    <div class="result-line" id="resultLine"></div>
+  </div>
 
-<input type="text" id="supplier" placeholder="Supplier Lab Name">
+  <div id="list"></div>
+  <button class="btn ghost more" id="moreBtn" hidden>Show more</button>
 
-<input type="text" id="organizer" placeholder="Calibration Organizer Name">
+  <footer>© 2026 Calibration Instrument Checklist System</footer>
+</main>
 
-</div>
+<nav class="dock" aria-label="Report actions">
+  <button class="btn" id="pdfBtn">PDF report</button>
+  <button class="btn ghost" id="mailBtn">Email list</button>
+  <button class="btn ghost" id="xlsBtn">Export Excel</button>
+</nav>
 
-<div class="card">
-
-<h3>Add New Gauge</h3>
-
-<input type="text" id="gname" placeholder="Gauge Name">
-
-<input type="text" id="gid" placeholder="Gauge ID">
-
-<input type="text" id="gdept" placeholder="Department">
-
-<input type="text" id="gmake" placeholder="Gauge Make">
-
-<input type="date" id="gdate">
-
-<button onclick="addGauge()">Add Gauge</button>
-
-</div>
-
-</div>
-
-<input type="text" id="search"
-placeholder="Search Gauge / ID / Department / Customer"
-onkeyup="searchTable()">
-
-<div class="summary">
-
-<div class="summary-box">
-<h3>Total Gauges</h3>
-<h2 id="total">0</h2>
-</div>
-
-<div class="summary-box">
-<h3>Completed</h3>
-<h2 id="completed">0</h2>
-</div>
-
-<div class="summary-box">
-<h3>Waiting</h3>
-<h2 id="waiting">0</h2>
-</div>
-
-<div class="summary-box">
-<h3>Broken / Missing</h3>
-<h2 id="broken">0</h2>
-</div>
-
-<div class="summary-box">
-<h3>Under RGP</h3>
-<h2 id="rgp">0</h2>
-</div>
-
-<div class="summary-box">
-<h3>Service</h3>
-<h2 id="service">0</h2>
-</div>
-
-</div>
-
-<div class="control-buttons">
-
-<button onclick="saveData()">Save Progress</button>
-
-<button onclick="restoreData()">Restore Saved Data</button>
-
-<button onclick="resetAll()">Reset All</button>
-
-<button onclick="downloadPDF()">Submit & Download PDF</button>
-
-</div>
-
-<div class="table-container">
-
-<table id="table">
-
-<thead>
-
-<tr>
-
-<th>S.No</th>
-<th>Gauge Name</th>
-<th>GO</th>
-<th>NOGO</th>
-<th>Serial No</th>
-<th>Make</th>
-<th>Type</th>
-<th>Use Of</th>
-<th>Criteria</th>
-<th>Gauge ID</th>
-<th>Due Date</th>
-<th>Department</th>
-<th>Status</th>
-<th>Gauge Condition</th>
-<th>Calibration Image</th>
-<th>Remarks</th>
-
-</tr>
-
-</thead>
-
-<tbody></tbody>
-
-</table>
-
-</div>
-
-<div class="history-box">
-
-<h2>Calibration History</h2>
-
-<div id="historyList"></div>
-
-</div>
-
-</div>
-
-<footer>
-© 2026 Calibration Instrument Checklist System. All Rights Reserved.
-</footer>
+<input type="file" id="camInput" accept="image/*" capture="environment" hidden>
+<input type="file" id="galInput" accept="image/*" hidden>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div id="lightbox" role="dialog" aria-label="Photo preview"><img alt=""></div>
 
 <script>
-
-let gaugeData=[];
-let historyData=[];
-
-document.getElementById('excelFile').addEventListener('change',function(e){
-
-const file=e.target.files[0];
-
-const reader=new FileReader();
-
-reader.onload=function(evt){
-
-const data=new Uint8Array(evt.target.result);
-
-const workbook=XLSX.read(data,{type:'array'});
-
-gaugeData=[];
-
-workbook.SheetNames.forEach(sheet=>{
-
-const ws=workbook.Sheets[sheet];
-
-const json=XLSX.utils.sheet_to_json(ws,{header:1});
-
-for(let i=2;i<json.length;i++){
-
-const row=json[i];
-
-if(!row || row.length===0) continue;
-
-gaugeData.push({
-
-sno:row[0]||'',
-
-name:row[1]||'',
-
-go:row[2]||'',
-
-nogo:row[3]||'',
-
-serial:row[4]||'',
-
-make:row[5]||'',
-
-type:row[6]||'',
-
-useof:row[7]||'',
-
-criteria:row[8]||'',
-
-gid:row[9]||'',
-
-due:excelDateToJSDate(row[10]),
-
-dept:isNaN(row[11]) ? row[11] || '' : '',
-
-status:'Waiting for Calibration',
-
-condition:'OK',
-
-remarks:'',
-
-image:''
-
-});
-
-}
-
-});
-
-addHistory('Excel calibration file uploaded');
-
-renderTable();
-
-}
-
-reader.readAsArrayBuffer(file);
-
-});
-
-function excelDateToJSDate(serial){
-
-if(typeof serial==='number'){
-
-const utc_days=Math.floor(serial-25569);
-
-const utc_value=utc_days*86400;
-
-const date_info=new Date(utc_value*1000);
-
-return date_info.toLocaleDateString();
-
-}
-
-return serial;
-
-}
-
-function renderTable(){
-
-const tbody=document.querySelector('#table tbody');
-
-tbody.innerHTML='';
-
-gaugeData.forEach((g,index)=>{
-
-const tr=document.createElement('tr');
-
-if(g.status==='Completed'){
-tr.classList.add('green-row');
-}
-
-if(
-g.status==='Broken' ||
-g.status==='Gauge Missing' ||
-g.condition==='NOT OK'
-){
-tr.classList.add('red-row');
-}
-
-if(
-g.status==='Service' ||
-g.status==='Under RGP'
-){
-tr.classList.add('gray-row');
-}
-
-tr.innerHTML=`
-
-<td>${g.sno}</td>
-
-<td>${g.name}</td>
-
-<td>${g.go}</td>
-
-<td>${g.nogo}</td>
-
-<td>${g.serial}</td>
-
-<td>${g.make}</td>
-
-<td>${g.type}</td>
-
-<td>${g.useof}</td>
-
-<td>${g.criteria}</td>
-
-<td>${g.gid}</td>
-
-<td>${g.due}</td>
-
-<td>${g.dept}</td>
-
-<td>
-
-<select onchange="updateStatus(${index},this.value)">
-
-<option ${g.status==='Completed'?'selected':''}>Completed</option>
-
-<option ${g.status==='Gauge Missing'?'selected':''}>Gauge Missing</option>
-
-<option ${g.status==='Broken'?'selected':''}>Broken</option>
-
-<option ${g.status==='Waiting for Calibration'?'selected':''}>Waiting for Calibration</option>
-
-<option ${g.status==='Service'?'selected':''}>Service</option>
-
-<option ${g.status==='Under RGP'?'selected':''}>Under RGP</option>
-
-</select>
-
-</td>
-
-<td>
-
-<select onchange="updateCondition(${index},this.value)">
-
-<option ${g.condition==='OK'?'selected':''}>OK</option>
-
-<option ${g.condition==='NOT OK'?'selected':''}>NOT OK</option>
-
-</select>
-
-</td>
-
-<td>
-
-<input type="file"
-accept="image/*"
-capture="environment"
-onchange="uploadImage(event,${index})">
-
-${g.image?`<img src="${g.image}" class="preview">`:''}
-
-</td>
-
-<td>
-
-<textarea maxlength="500000"
-onchange="updateRemarks(${index},this.value)">${g.remarks}</textarea>
-
-</td>
-
-`;
-
-tbody.appendChild(tr);
-
-});
-
-updateSummary();
-
-}
-
-function updateSummary(){
-
-document.getElementById('total').innerText=
-gaugeData.length;
-
-document.getElementById('completed').innerText=
-gaugeData.filter(x=>x.status==='Completed').length;
-
-document.getElementById('waiting').innerText=
-gaugeData.filter(x=>x.status==='Waiting for Calibration').length;
-
-document.getElementById('broken').innerText=
-gaugeData.filter(x=>
-x.status==='Broken' ||
-x.status==='Gauge Missing'
-).length;
-
-document.getElementById('rgp').innerText=
-gaugeData.filter(x=>
-x.status==='Under RGP'
-).length;
-
-document.getElementById('service').innerText=
-gaugeData.filter(x=>
-x.status==='Service'
-).length;
-
-}
-
-function updateStatus(index,value){
-
-const old=gaugeData[index].status;
-
-gaugeData[index].status=value;
-
-addHistory(
-gaugeData[index].name+
-' ('+
-gaugeData[index].gid+
-') status changed from '+
-old+
-' to '+
-value
-);
-
-saveData();
-
-renderTable();
-
-}
-
-function updateCondition(index,value){
-
-const old=gaugeData[index].condition;
-
-gaugeData[index].condition=value;
-
-addHistory(
-gaugeData[index].name+
-' condition changed from '+
-old+
-' to '+
-value
-);
-
-saveData();
-
-renderTable();
-
-}
-
-function updateRemarks(index,value){
-
-gaugeData[index].remarks=value;
-
-saveData();
-
-}
-
-function uploadImage(event,index){
-
-const file=event.target.files[0];
-
-const reader=new FileReader();
-
-reader.onload=function(e){
-
-gaugeData[index].image=e.target.result;
-
-addHistory(
-'Image uploaded for '+gaugeData[index].name
-);
-
-saveData();
-
-renderTable();
-
-}
-
-reader.readAsDataURL(file);
-
-}
-
-function addGauge(){
-
-const gauge={
-
-sno:gaugeData.length+1,
-
-name:document.getElementById('gname').value,
-
-go:'-',
-
-nogo:'-',
-
-serial:'-',
-
-make:document.getElementById('gmake').value,
-
-type:'-',
-
-useof:'-',
-
-criteria:'-',
-
-gid:document.getElementById('gid').value,
-
-due:document.getElementById('gdate').value,
-
-dept:isNaN(document.getElementById('gdept').value)
-? document.getElementById('gdept').value
-: '',
-
-status:'Waiting for Calibration',
-
-condition:'OK',
-
-remarks:'',
-
-image:''
-
+/* ---------- Constants & state ---------- */
+const STATUSES=['Waiting for Calibration','Completed','Gauge Missing','Broken','Service','Under RGP'];
+const DEFAULT_EMAIL='manupriya@tempel.com';
+const PAGE=60;
+
+let state={
+  gauges:[], history:[],
+  details:{person:'',supplier:'',organizer:''},
+  email:{to:DEFAULT_EMAIL,auto:true,autoSentFor:null,pending:false,lastSent:null},
+  excelMeta:null
+};
+let images={};          // uid -> jpeg dataURL (stored separately)
+let storageOK=true;
+let filter='all', query='', limit=PAGE, photoTarget=null;
+
+const $=id=>document.getElementById(id);
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid=()=>'g'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+
+/* ---------- IndexedDB storage (survives refresh, holds large data) ---------- */
+const DB={
+  db:null,
+  open(){return new Promise((res,rej)=>{
+    if(!window.indexedDB) return rej(new Error('IndexedDB not available'));
+    const r=indexedDB.open('calibChecklistDB',1);
+    r.onupgradeneeded=()=>{const d=r.result;d.createObjectStore('kv');d.createObjectStore('images');};
+    r.onsuccess=()=>{this.db=r.result;res();};
+    r.onerror=()=>rej(r.error);
+  });},
+  run(store,mode,fn){return new Promise((res,rej)=>{
+    const t=this.db.transaction(store,mode);const req=fn(t.objectStore(store));
+    t.oncomplete=()=>res(req?req.result:undefined);t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error);
+  });},
+  get(s,k){return this.run(s,'readonly',o=>o.get(k));},
+  put(s,k,v){return this.run(s,'readwrite',o=>o.put(v,k));},
+  del(s,k){return this.run(s,'readwrite',o=>o.delete(k));},
+  clear(s){return this.run(s,'readwrite',o=>o.clear());},
+  entries(s){return new Promise((res,rej)=>{
+    const out={};const t=this.db.transaction(s);const c=t.objectStore(s).openCursor();
+    c.onsuccess=()=>{const cur=c.result;if(cur){out[cur.key]=cur.value;cur.continue();}};
+    t.oncomplete=()=>res(out);t.onerror=()=>rej(t.error);
+  });}
 };
 
-gaugeData.push(gauge);
+let saveTimer=null;
+function save(){
+  $('saveState').textContent='Saving…';
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(saveNow,300);
+}
+async function saveNow(){
+  clearTimeout(saveTimer);
+  if(!storageOK){$('saveState').textContent='Not saved';return;}
+  try{
+    await DB.put('kv','state',state);
+    $('saveState').textContent='Saved '+new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+  }catch(e){
+    $('saveState').textContent='Save failed';
+    showStorageBanner('Saving failed: '+(e.message||e)+'. The device may be out of storage — remove some photos or export your data.');
+  }
+}
+window.addEventListener('pagehide',saveNow);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)saveNow();});
 
-addHistory('New Gauge Added : '+gauge.name);
+function showStorageBanner(msg){const b=$('storageBanner');b.textContent=msg;b.hidden=false;}
 
-saveData();
+/* ---------- Dates ---------- */
+const pad=n=>String(n).padStart(2,'0');
+function toISO(v){
+  if(v===undefined||v===null||v==='') return '';
+  if(typeof v==='number'){
+    const d=new Date(Math.round((v-25569)*86400000));
+    return d.getUTCFullYear()+'-'+pad(d.getUTCMonth()+1)+'-'+pad(d.getUTCDate());
+  }
+  if(v instanceof Date && !isNaN(v)) return v.getFullYear()+'-'+pad(v.getMonth()+1)+'-'+pad(v.getDate());
+  const s=String(v).trim();
+  let m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if(m) return m[1]+'-'+pad(m[2])+'-'+pad(m[3]);
+  m=s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/);   // dd/mm/yyyy
+  if(m){const y=m[3].length===2?'20'+m[3]:m[3];return y+'-'+pad(m[2])+'-'+pad(m[1]);}
+  return s;
+}
+const isISO=s=>/^\d{4}-\d{2}-\d{2}$/.test(s);
+function fmtDate(s){if(!s)return '';if(isISO(s)){const[y,m,d]=s.split('-');return d+'-'+m+'-'+y;}return s;}
+function todayISO(){return toISO(new Date());}
+const isOverdue=g=>isISO(g.due)&&g.due<todayISO()&&g.status!=='Completed';
 
-renderTable();
-
+/* ---------- Status helpers ---------- */
+function statusClass(s){
+  if(s==='Completed')return 'ok';
+  if(s==='Broken'||s==='Gauge Missing')return 'bad';
+  if(s==='Under RGP')return 'hold';
+  if(s==='Service')return 'svc';
+  return 'wait';
+}
+const FILTERS=[
+  ['all','All'],['Waiting for Calibration','Waiting'],['Completed','Completed'],
+  ['bm','Broken / missing'],['Under RGP','Under RGP'],['Service','Service'],
+  ['notok','Not OK'],['overdue','Overdue']
+];
+function matchFilter(g,f){
+  if(f==='all')return true;
+  if(f==='bm')return g.status==='Broken'||g.status==='Gauge Missing';
+  if(f==='notok')return g.condition==='NOT OK';
+  if(f==='overdue')return isOverdue(g);
+  return g.status===f;
+}
+function haystack(g){
+  return [g.sno,g.name,g.gid,g.serial,g.dept,g.make,g.type,g.useof,g.criteria,g.go,g.nogo,
+          g.status,g.condition,g.remarks,fmtDate(g.due),g.sheet].join(' ').toLowerCase();
+}
+function matchQuery(g){
+  if(!query)return true;
+  const h=haystack(g);
+  return query.split(/\s+/).every(t=>h.includes(t));
 }
 
-function searchTable(){
-
-const value=document.getElementById('search').value.toLowerCase();
-
-const rows=document.querySelectorAll('#table tbody tr');
-
-rows.forEach(r=>{
-
-if(r.innerText.toLowerCase().includes(value)){
-
-r.style.display='';
-
-}else{
-
-r.style.display='none';
-
+/* ---------- Rendering ---------- */
+function fact(label,v,cls){
+  if(v===undefined||v===null||String(v).trim()===''||String(v).trim()==='-')return '';
+  return `<div class="${cls||''}"><dt>${label}</dt><dd>${esc(v)}${cls==='overdue'?' · overdue':''}</dd></div>`;
+}
+function cardHTML(g){
+  const img=images[g.uid];
+  const done=g.status==='Completed';
+  return `<article class="card s-${statusClass(g.status)}${g.condition==='NOT OK'?' notok':''}" data-uid="${g.uid}">
+    <header class="c-head">
+      <div><h3>${esc(g.name)||'Unnamed gauge'}</h3>
+      <p class="c-sub">${g.sno!==''?'S.No '+esc(g.sno):''}${g.sno!==''&&g.dept?' | ':''}${esc(g.dept)}</p></div>
+      <span class="gid">${esc(g.gid)||'No ID'}</span>
+    </header>
+    <dl class="c-facts">
+      ${fact('Serial no',g.serial)}${fact('Due date',fmtDate(g.due),isOverdue(g)?'overdue':'')}
+      ${fact('GO',g.go)}${fact('NOGO',g.nogo)}${fact('Make',g.make)}${fact('Type',g.type)}
+      ${fact('Use of',g.useof)}${fact('Criteria',g.criteria)}
+    </dl>
+    <div class="c-actions">
+      <button class="done-btn" data-act="toggleDone" aria-pressed="${done}">${done?'✓ Completed':'Mark completed'}</button>
+      <select data-act="status" aria-label="Status">${STATUSES.map(s=>`<option${s===g.status?' selected':''}>${s}</option>`).join('')}</select>
+    </div>
+    <div class="cond" role="group" aria-label="Gauge condition">
+      <span>Condition</span>
+      <button data-act="cond" data-v="OK" aria-pressed="${g.condition!=='NOT OK'}">OK</button>
+      <button data-act="cond" data-v="NOT OK" aria-pressed="${g.condition==='NOT OK'}">Not OK</button>
+    </div>
+    <div class="photo">
+      ${img?`<img src="${img}" alt="Calibration photo" data-act="view"><button class="link" data-act="rmPhoto">Remove photo</button>`:''}
+      <button class="btn ghost small" data-act="camera">Take photo</button>
+      <button class="btn ghost small" data-act="gallery">Choose photo</button>
+    </div>
+    <textarea data-act="remarks" rows="2" placeholder="Remarks" aria-label="Remarks">${esc(g.remarks)}</textarea>
+    ${g.updatedAt?`<p class="stamp">Updated ${esc(new Date(g.updatedAt).toLocaleString())}</p>`:''}
+  </article>`;
 }
 
-});
-
+function renderList(){
+  const list=$('list');
+  const rows=state.gauges.filter(g=>matchFilter(g,filter)&&matchQuery(g));
+  if(!state.gauges.length){
+    list.innerHTML=`<div class="empty"><b>No gauges yet</b>Upload the calibration Excel in Setup, or add a gauge by hand.</div>`;
+  }else if(!rows.length){
+    list.innerHTML=`<div class="empty"><b>No gauges match</b>Try fewer words, or pick "All" in the filters.</div>`;
+  }else{
+    list.innerHTML=rows.slice(0,limit).map(cardHTML).join('');
+  }
+  $('moreBtn').hidden=rows.length<=limit;
+  $('moreBtn').textContent=`Show more (${rows.length-limit} left)`;
+  $('resultLine').textContent=state.gauges.length?`Showing ${Math.min(rows.length,limit)} of ${rows.length} matching · ${state.gauges.length} total`:'';
 }
+function replaceCard(g){
+  const el=document.querySelector(`.card[data-uid="${g.uid}"]`);
+  if(el) el.outerHTML=cardHTML(g);
+}
+function renderCounts(){
+  const G=state.gauges,total=G.length,done=G.filter(g=>g.status==='Completed').length;
+  $('pDone').textContent=done;$('pTotal').textContent=total;
+  const pct=total?Math.round(done/total*100):0;
+  $('pPct').textContent=pct+'%';$('pBar').style.width=pct+'%';
+  $('chips').innerHTML=FILTERS.map(([k,l])=>
+    `<button class="chip" data-f="${esc(k)}" aria-pressed="${filter===k}">${l}<b>${G.filter(g=>matchFilter(g,k)).length}</b></button>`).join('');
+}
+function renderHistory(){
+  $('historyList').innerHTML=state.history.length
+    ?state.history.slice(0,200).map(h=>`<div class="h-item"><time>${esc(h.time)}</time>${esc(h.message)}</div>`).join('')
+    :'<p class="hint">Nothing recorded yet.</p>';
+}
+function renderExcelInfo(){
+  const m=state.excelMeta;
+  if(m){
+    $('excelInfo').innerHTML=`<b>${esc(m.name)}</b>${m.rows} gauges · uploaded ${esc(new Date(m.uploadedAt).toLocaleString())}`;
+    $('uploadText').textContent='Replace with new Excel';
+    $('dlOriginal').hidden=false;
+  }else{
+    $('excelInfo').textContent='No Excel uploaded yet.';
+    $('uploadText').textContent='Upload Excel';
+    $('dlOriginal').hidden=true;
+  }
+}
+function renderMailStatus(){
+  const e=state.email;
+  let s='';
+  if(e.lastSent) s='Last sent '+new Date(e.lastSent).toLocaleString()+'.';
+  if(e.pending) s+=' Waiting for internet to send.';
+  $('mailStatus').textContent=s.trim();
+}
+function renderAll(){renderCounts();renderList();renderHistory();renderExcelInfo();renderMailStatus();}
 
 function addHistory(message){
+  state.history.unshift({time:new Date().toLocaleString(),message});
+  if(state.history.length>1000) state.history.length=1000;
+  renderHistory();
+}
+let toastTimer;
+function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2600);}
 
-const now=new Date();
+/* ---------- Gauge updates ---------- */
+const byUid=u=>state.gauges.find(g=>g.uid===u);
+function updateGauge(g,patch,msg){
+  Object.assign(g,patch,{updatedAt:new Date().toISOString()});
+  if(msg) addHistory(msg);
+  save();replaceCard(g);renderCounts();checkAutoEmail();
+}
+const label=g=>`${g.name||'Gauge'} (${g.gid||'no ID'})`;
 
-const time=now.toLocaleString();
+$('list').addEventListener('click',e=>{
+  const el=e.target.closest('[data-act]');if(!el)return;
+  const card=el.closest('.card');const g=card&&byUid(card.dataset.uid);if(!g)return;
+  const act=el.dataset.act;
+  if(act==='toggleDone'){
+    const ns=g.status==='Completed'?'Waiting for Calibration':'Completed';
+    updateGauge(g,{status:ns},`${label(g)} status changed from ${g.status} to ${ns}`);
+  }else if(act==='cond'){
+    const v=el.dataset.v;if(v===g.condition)return;
+    updateGauge(g,{condition:v},`${label(g)} condition changed from ${g.condition} to ${v}`);
+  }else if(act==='camera'||act==='gallery'){
+    photoTarget=g.uid;const inp=$(act==='camera'?'camInput':'galInput');inp.value='';inp.click();
+  }else if(act==='rmPhoto'){
+    if(!confirm('Remove this photo?'))return;
+    delete images[g.uid];if(storageOK)DB.del('images',g.uid);
+    updateGauge(g,{},`Photo removed for ${label(g)}`);
+  }else if(act==='view'){
+    const lb=$('lightbox');lb.querySelector('img').src=el.src;lb.classList.add('show');
+  }
+});
+$('list').addEventListener('change',e=>{
+  if(e.target.dataset.act!=='status')return;
+  const g=byUid(e.target.closest('.card').dataset.uid);
+  const v=e.target.value;
+  updateGauge(g,{status:v},`${label(g)} status changed from ${g.status} to ${v}`);
+});
+$('list').addEventListener('input',e=>{
+  if(e.target.dataset.act!=='remarks')return;
+  const g=byUid(e.target.closest('.card').dataset.uid);
+  g.remarks=e.target.value;g.updatedAt=new Date().toISOString();save();
+});
+$('lightbox').addEventListener('click',()=>$('lightbox').classList.remove('show'));
 
-historyData.unshift({
+/* ---------- Photos (compressed so storage and PDF stay small) ---------- */
+function compressImage(file,max=1200,q=0.72){
+  return new Promise((res,rej)=>{
+    const url=URL.createObjectURL(file);const img=new Image();
+    img.onload=()=>{
+      const s=Math.min(1,max/Math.max(img.width,img.height));
+      const c=document.createElement('canvas');c.width=Math.round(img.width*s);c.height=Math.round(img.height*s);
+      c.getContext('2d').drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(url);
+      res(c.toDataURL('image/jpeg',q));
+    };
+    img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error('Could not read this image'));};
+    img.src=url;
+  });
+}
+async function onPhoto(e){
+  const f=e.target.files[0];if(!f||!photoTarget)return;
+  const g=byUid(photoTarget);if(!g)return;
+  try{
+    const data=await compressImage(f);
+    images[g.uid]=data;
+    if(storageOK) await DB.put('images',g.uid,data);
+    updateGauge(g,{},`Photo added for ${label(g)}`);toast('Photo saved');
+  }catch(err){toast(err.message);}
+}
+$('camInput').addEventListener('change',onPhoto);
+$('galInput').addEventListener('change',onPhoto);
 
-time:time,
-
-message:message
-
+/* ---------- Excel upload (saved until replaced) ---------- */
+function parseWorkbook(wb){
+  const out=[];
+  wb.SheetNames.forEach(sheet=>{
+    const json=XLSX.utils.sheet_to_json(wb.Sheets[sheet],{header:1,raw:true,defval:''});
+    for(let i=2;i<json.length;i++){
+      const r=json[i];if(!r||!r.length)continue;
+      const name=String(r[1]??'').trim(),gid=String(r[9]??'').trim();
+      if(!name&&!gid)continue;
+      out.push({
+        uid:uid(),sheet,sno:r[0]??'',name,go:r[2]??'',nogo:r[3]??'',serial:r[4]??'',make:r[5]??'',
+        type:r[6]??'',useof:r[7]??'',criteria:r[8]??'',gid,due:toISO(r[10]),
+        dept:isNaN(r[11])?(r[11]||''):'',
+        status:'Waiting for Calibration',condition:'OK',remarks:'',updatedAt:null
+      });
+    }
+  });
+  return out;
+}
+$('excelFile').addEventListener('change',async e=>{
+  const file=e.target.files[0];e.target.value='';if(!file)return;
+  try{
+    const buf=await file.arrayBuffer();
+    const rows=parseWorkbook(XLSX.read(buf,{type:'array'}));
+    if(!rows.length){toast('No gauge rows found. Data should start on row 3.');return;}
+    let carry=false;
+    if(state.gauges.length){
+      if(!confirm(`Replace "${state.excelMeta?state.excelMeta.name:'the current list'}" with "${file.name}"?`))return;
+      carry=confirm('Keep status, condition, remarks and photos for gauges with the same Gauge ID?\n\nOK = keep   Cancel = start fresh');
+    }
+    const old=new Map();state.gauges.forEach(g=>{if(g.gid)old.set(String(g.gid).toLowerCase(),g);});
+    const kept=new Set();
+    if(carry) rows.forEach(r=>{
+      const o=r.gid&&old.get(r.gid.toLowerCase());
+      if(o){Object.assign(r,{uid:o.uid,status:o.status,condition:o.condition,remarks:o.remarks,updatedAt:o.updatedAt});kept.add(o.uid);old.delete(r.gid.toLowerCase());}
+    });
+    for(const k of Object.keys(images)) if(!kept.has(k)){delete images[k];if(storageOK)await DB.del('images',k);}
+    state.gauges=rows;
+    state.excelMeta={name:file.name,rows:rows.length,uploadedAt:new Date().toISOString()};
+    state.email.autoSentFor=null;state.email.pending=false;
+    if(storageOK) await DB.put('kv','excel',{name:file.name,type:file.type,buffer:buf});
+    addHistory(`Excel "${file.name}" uploaded (${rows.length} gauges)${carry?', progress carried over':''}`);
+    filter='all';limit=PAGE;
+    await saveNow();renderAll();toast(`${rows.length} gauges loaded`);
+  }catch(err){toast('Could not read this Excel: '+err.message);}
+});
+$('dlOriginal').addEventListener('click',async()=>{
+  const x=storageOK&&await DB.get('kv','excel');
+  if(!x){toast('Original Excel is not stored on this device');return;}
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([x.buffer],{type:x.type||'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
+  a.download=x.name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),4000);
 });
 
-renderHistory();
-
-}
-
-function renderHistory(){
-
-const history=document.getElementById('historyList');
-
-history.innerHTML='';
-
-historyData.forEach(h=>{
-
-const div=document.createElement('div');
-
-div.classList.add('history-item');
-
-div.innerHTML=`
-<b>${h.time}</b><br>
-${h.message}
-`;
-
-history.appendChild(div);
-
+/* ---------- Add gauge ---------- */
+$('addBtn').addEventListener('click',()=>{
+  const v=id=>$(id).value.trim();
+  if(!v('gname')){toast('Enter the gauge name');$('gname').focus();return;}
+  if(v('gid')&&state.gauges.some(g=>String(g.gid).toLowerCase()===v('gid').toLowerCase())&&!confirm('A gauge with this ID already exists. Add anyway?'))return;
+  const g={uid:uid(),sheet:'Added manually',sno:state.gauges.length+1,name:v('gname'),go:'',nogo:'',serial:v('gserial'),
+    make:v('gmake'),type:'',useof:'',criteria:'',gid:v('gid'),due:v('gdate'),dept:isNaN(v('gdept'))?v('gdept'):'',
+    status:'Waiting for Calibration',condition:'OK',remarks:'',updatedAt:new Date().toISOString()};
+  state.gauges.push(g);
+  addHistory('New gauge added: '+label(g));
+  ['gname','gid','gserial','gdept','gmake','gdate'].forEach(id=>$(id).value='');
+  save();renderCounts();renderList();toast('Gauge added');
 });
 
+/* ---------- Details & email settings ---------- */
+['person','supplier','organizer'].forEach(id=>$(id).addEventListener('input',e=>{state.details[id]=e.target.value;save();}));
+$('mailTo').addEventListener('input',e=>{state.email.to=e.target.value.trim();save();});
+$('autoMail').addEventListener('change',e=>{state.email.auto=e.target.checked;save();checkAutoEmail();});
+
+/* ---------- Search & filters ---------- */
+let qTimer;
+$('search').addEventListener('input',e=>{
+  $('clearQ').style.display=e.target.value?'block':'none';
+  clearTimeout(qTimer);
+  qTimer=setTimeout(()=>{query=e.target.value.trim().toLowerCase();limit=PAGE;renderList();},150);
+});
+$('clearQ').addEventListener('click',()=>{$('search').value='';query='';$('clearQ').style.display='none';renderList();$('search').focus();});
+$('chips').addEventListener('click',e=>{const c=e.target.closest('.chip');if(!c)return;filter=c.dataset.f;limit=PAGE;renderCounts();renderList();});
+$('moreBtn').addEventListener('click',()=>{limit+=PAGE;renderList();});
+
+/* ---------- Email the completed list ---------- */
+function buildReport(){
+  const G=state.gauges,done=G.filter(g=>g.status==='Completed');
+  const count=s=>G.filter(g=>g.status===s).length;
+  const d=state.details;
+  const summary=[
+    `Date: ${new Date().toLocaleDateString()}`,
+    `Excel: ${state.excelMeta?state.excelMeta.name:'-'}`,
+    `Calibration person: ${d.person||'-'}`,`Supplier lab: ${d.supplier||'-'}`,`Organizer: ${d.organizer||'-'}`,
+    `Total: ${G.length} | Completed: ${done.length} | Waiting: ${count('Waiting for Calibration')} | Broken: ${count('Broken')} | Missing: ${count('Gauge Missing')} | Service: ${count('Service')} | Under RGP: ${count('Under RGP')}`
+  ].join('\n');
+  const list=done.length?done.map((g,i)=>
+    `${i+1}. ${g.name} | ID: ${g.gid||'-'} | Serial: ${g.serial||'-'} | Dept: ${g.dept||'-'} | Due: ${fmtDate(g.due)||'-'} | Condition: ${g.condition}${g.remarks?' | Remarks: '+g.remarks:''}`
+  ).join('\n'):'No gauges marked completed.';
+  const others=G.filter(g=>g.status!=='Completed'&&g.status!=='Waiting for Calibration')
+    .map(g=>`${g.name} | ID: ${g.gid||'-'} | ${g.status}`).join('\n');
+  return {subject:`Gauge calibration completed list - ${done.length} of ${G.length} - ${new Date().toLocaleDateString()}`,summary,list,others,done};
 }
-
-function saveData(){
-
-localStorage.setItem(
-'gaugeData',
-JSON.stringify(gaugeData)
-);
-
-localStorage.setItem(
-'historyData',
-JSON.stringify(historyData)
-);
-
-alert('Calibration Progress Saved');
-
+async function sendEmail(auto){
+  const to=(state.email.to||DEFAULT_EMAIL).trim();
+  const r=buildReport();
+  if(!auto&&!r.done.length&&!confirm('No gauges are marked completed yet. Send anyway?'))return;
+  if(!navigator.onLine){
+    state.email.pending=true;save();renderMailStatus();
+    toast('Offline. The email will be sent when the internet is back.');return;
+  }
+  $('mailBtn').disabled=true;$('mailBtn').textContent='Sending…';
+  try{
+    const res=await fetch('https://formsubmit.co/ajax/'+encodeURIComponent(to),{
+      method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},
+      body:JSON.stringify({_subject:r.subject,_template:'box',_captcha:'false',
+        message:`${r.summary}\n\nCOMPLETED GAUGES\n${r.list}${r.others?'\n\nNEEDS ATTENTION\n'+r.others:''}`})
+    });
+    const j=await res.json().catch(()=>({}));
+    if(!res.ok||String(j.success)!=='true') throw new Error(j.message||('Server replied '+res.status));
+    state.email.pending=false;state.email.lastSent=new Date().toISOString();
+    addHistory(`Completed list (${r.done.length} gauges) emailed to ${to}${auto?' automatically':''}`);
+    $('mailBanner').hidden=true;toast('Email sent to '+to);
+  }catch(err){
+    if(auto)state.email.pending=true;
+    showMailFallback(to,r,err.message);
+  }finally{
+    $('mailBtn').disabled=false;$('mailBtn').textContent='Email list';save();renderMailStatus();
+  }
 }
-
-function restoreData(){
-
-const savedGauge=
-localStorage.getItem('gaugeData');
-
-const savedHistory=
-localStorage.getItem('historyData');
-
-if(savedGauge){
-
-gaugeData=JSON.parse(savedGauge);
-
-renderTable();
-
+function showMailFallback(to,r,why){
+  const b=$('mailBanner');
+  b.innerHTML=`Email could not be sent automatically (${esc(why)}).<br><button class="btn small" id="mailtoBtn">Open in mail app</button>`;
+  b.hidden=false;
+  $('mailtoBtn').onclick=()=>{
+    let body=`${r.summary}\n\nCOMPLETED GAUGES\n${r.list}`;
+    if(body.length>1800) body=body.slice(0,1800)+'\n… (list shortened — full list in the PDF report)';
+    location.href=`mailto:${to}?subject=${encodeURIComponent(r.subject)}&body=${encodeURIComponent(body)}`;
+  };
 }
-
-if(savedHistory){
-
-historyData=JSON.parse(savedHistory);
-
-renderHistory();
-
+function checkAutoEmail(){
+  const G=state.gauges;if(!G.length||!state.email.auto)return;
+  const key=state.excelMeta?state.excelMeta.uploadedAt:'manual';
+  if(G.some(g=>g.status==='Waiting for Calibration'))return;
+  if(state.email.autoSentFor===key)return;
+  state.email.autoSentFor=key;save();
+  toast('All gauges checked. Sending the completed list…');
+  sendEmail(true);
 }
+window.addEventListener('online',()=>{if(state.email.pending)sendEmail(true);});
+$('mailBtn').addEventListener('click',()=>sendEmail(false));
 
-alert('Saved Calibration Data Restored');
-
-}
-
-function resetAll(){
-
-if(confirm('Reset all calibration data?')){
-
-localStorage.removeItem('gaugeData');
-
-localStorage.removeItem('historyData');
-
-gaugeData=[];
-
-historyData=[];
-
-renderTable();
-
-renderHistory();
-
-document.getElementById('historyList').innerHTML='';
-
-alert('All Calibration Data Reset Successfully');
-
-}
-
-}
-
-async function downloadPDF(){
-
-const {jsPDF}=window.jspdf;
-
-const doc=new jsPDF('l','mm','a4');
-
-const today=new Date().toLocaleDateString();
-
-const person=document.getElementById('person').value;
-
-const supplier=document.getElementById('supplier').value;
-
-const organizer=document.getElementById('organizer').value;
-
-doc.setFontSize(18);
-
-doc.text(
-'Calibration Instrument Checklist Report',
-14,
-15
-);
-
-doc.setFontSize(11);
-
-doc.text('Date : '+today,220,15);
-
-doc.text('Calibration Person : '+person,14,25);
-
-doc.text('Supplier Lab : '+supplier,14,32);
-
-doc.text('Organizer : '+organizer,14,39);
-
-doc.text(
-'Total Gauges : '+gaugeData.length,
-14,
-48
-);
-
-doc.autoTable({
-
-startY:55,
-
-head:[[
-'S.No',
-'Gauge',
-'Gauge ID',
-'Department',
-'Due Date',
-'Status',
-'Condition',
-'Remarks'
-]],
-
-body:gaugeData.map(g=>[
-g.sno,
-g.name,
-g.gid,
-g.dept,
-g.due,
-g.status,
-g.condition,
-g.remarks
-]),
-
-styles:{
-fontSize:7
-}
-
+/* ---------- PDF report ---------- */
+$('pdfBtn').addEventListener('click',()=>{
+  if(!state.gauges.length){toast('Nothing to report yet');return;}
+  const {jsPDF}=window.jspdf;const doc=new jsPDF('l','mm','a4');const d=state.details;const r=buildReport();
+  doc.setFontSize(16);doc.text('Calibration Instrument Checklist Report',14,15);
+  doc.setFontSize(10);doc.text('Date: '+new Date().toLocaleDateString(),240,15);
+  doc.text('Calibration person: '+(d.person||'-'),14,24);doc.text('Supplier lab: '+(d.supplier||'-'),14,30);
+  doc.text('Organizer: '+(d.organizer||'-'),14,36);
+  doc.text(r.summary.split('\n').pop(),14,43);
+  doc.autoTable({startY:49,
+    head:[['S.No','Gauge','Gauge ID','Serial','Department','Due date','Status','Condition','Remarks']],
+    body:state.gauges.map(g=>[g.sno,g.name,g.gid,g.serial,g.dept,fmtDate(g.due),g.status,g.condition,g.remarks]),
+    styles:{fontSize:7},headStyles:{fillColor:[11,94,126]},
+    didParseCell:c=>{if(c.section==='body'&&c.column.index===6){
+      const s=c.cell.raw;if(s==='Completed')c.cell.styles.textColor=[30,123,75];
+      else if(s==='Broken'||s==='Gauge Missing')c.cell.styles.textColor=[179,38,30];}}
+  });
+  const withImg=state.gauges.filter(g=>images[g.uid]);
+  if(withImg.length){
+    doc.addPage();doc.setFontSize(14);doc.text('Calibration photos',14,15);
+    let x=14,y=24;doc.setFontSize(8);
+    withImg.forEach(g=>{
+      if(x>240){x=14;y+=62;}
+      if(y>150){doc.addPage();x=14;y=20;}
+      doc.text(`${g.name} - ${g.gid}`.slice(0,40),x,y);
+      try{doc.addImage(images[g.uid],'JPEG',x,y+2,50,50);}catch(e){}
+      x+=56;
+    });
+  }
+  if(state.history.length){
+    doc.addPage();doc.setFontSize(14);doc.text('Calibration history',14,15);
+    let hy=25;doc.setFontSize(8);
+    state.history.forEach(h=>{if(hy>195){doc.addPage();hy=15;}doc.text(`${h.time} - ${h.message}`.slice(0,180),14,hy);hy+=6;});
+  }
+  doc.save('Calibration_Report_'+todayISO()+'.pdf');
+  addHistory('PDF report downloaded');save();
 });
 
-let y=doc.lastAutoTable.finalY+10;
-
-for(let i=0;i<gaugeData.length;i++){
-
-const g=gaugeData[i];
-
-if(g.image){
-
-if(y>170){
-
-doc.addPage();
-
-y=20;
-
-}
-
-doc.text(g.name+' - '+g.gid,14,y);
-
-doc.addImage(g.image,'JPEG',14,y+5,40,40);
-
-y+=55;
-
-}
-
-}
-
-if(historyData.length>0){
-
-doc.addPage();
-
-doc.setFontSize(16);
-
-doc.text('Calibration History',14,20);
-
-let hy=35;
-
-historyData.forEach(h=>{
-
-if(hy>180){
-
-doc.addPage();
-
-hy=20;
-
-}
-
-doc.setFontSize(9);
-
-doc.text(
-h.time+' - '+h.message,
-14,
-hy
-);
-
-hy+=10;
-
+/* ---------- Excel export with current status ---------- */
+$('xlsBtn').addEventListener('click',()=>{
+  if(!state.gauges.length){toast('Nothing to export yet');return;}
+  const ws=XLSX.utils.json_to_sheet(state.gauges.map(g=>({
+    'S.No':g.sno,'Gauge Name':g.name,'GO':g.go,'NOGO':g.nogo,'Serial No':g.serial,'Make':g.make,'Type':g.type,
+    'Use Of':g.useof,'Criteria':g.criteria,'Gauge ID':g.gid,'Due Date':fmtDate(g.due),'Department':g.dept,
+    'Status':g.status,'Condition':g.condition,'Remarks':g.remarks,'Photo':images[g.uid]?'Yes':'No',
+    'Last Updated':g.updatedAt?new Date(g.updatedAt).toLocaleString():''})));
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Calibration Status');
+  XLSX.writeFile(wb,'Calibration_Status_'+todayISO()+'.xlsx');
 });
 
+/* ---------- Clear everything ---------- */
+$('clearBtn').addEventListener('click',async()=>{
+  if(!confirm('Clear ALL saved data from this device? This deletes the Excel, statuses, remarks, photos and history.'))return;
+  if(!confirm('This cannot be undone. Clear now?'))return;
+  if(storageOK){await DB.clear('kv');await DB.clear('images');}
+  images={};
+  state={gauges:[],history:[],details:{person:'',supplier:'',organizer:''},
+    email:{to:DEFAULT_EMAIL,auto:true,autoSentFor:null,pending:false,lastSent:null},excelMeta:null};
+  fillInputs();renderAll();$('saveState').textContent='Cleared';$('setupPanel').open=true;toast('All data cleared');
+});
+
+function fillInputs(){
+  ['person','supplier','organizer'].forEach(id=>$(id).value=state.details[id]||'');
+  $('mailTo').value=state.email.to||DEFAULT_EMAIL;$('autoMail').checked=state.email.auto!==false;
 }
 
-doc.save('Calibration_Report.pdf');
-
-}
-
+/* ---------- Start: restore everything automatically ---------- */
+(async()=>{
+  try{
+    await DB.open();
+    const saved=await DB.get('kv','state');
+    if(saved){
+      state=Object.assign(state,saved);
+      state.details=Object.assign({person:'',supplier:'',organizer:''},saved.details);
+      state.email=Object.assign({to:DEFAULT_EMAIL,auto:true,autoSentFor:null,pending:false,lastSent:null},saved.email);
+      state.gauges.forEach(g=>{if(!g.uid)g.uid=uid();});
+    }else{
+      // one-time migration from the old localStorage version
+      const oldG=localStorage.getItem('gaugeData');
+      if(oldG){
+        const arr=JSON.parse(oldG)||[];
+        state.gauges=arr.map(g=>{const n=Object.assign({},g,{uid:uid(),due:toISO(g.due)});
+          if(g.image){images[n.uid]=g.image;DB.put('images',n.uid,g.image);}delete n.image;return n;});
+        state.history=JSON.parse(localStorage.getItem('historyData')||'[]');
+        await saveNow();localStorage.removeItem('gaugeData');localStorage.removeItem('historyData');
+      }
+    }
+    images=Object.assign(await DB.entries('images'),images);
+    if(navigator.storage&&navigator.storage.persist) navigator.storage.persist();
+    $('saveState').textContent=state.gauges.length?'Restored':'Ready';
+  }catch(e){
+    storageOK=false;
+    showStorageBanner('This browser is blocking storage (private/incognito mode?). Data will be lost on refresh — open the page in a normal browser tab.');
+    $('saveState').textContent='Not saved';
+  }
+  fillInputs();
+  $('setupPanel').open=!state.gauges.length;
+  renderAll();
+  if(state.email.pending&&navigator.onLine) sendEmail(true);
+})();
 </script>
 
 <script>
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js');
-}
+if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{});}
 </script>
-
 </body>
 </html>
